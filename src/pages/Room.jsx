@@ -239,8 +239,8 @@ const Room = () => {
           <div className="text-3xl text-purple-600">{oppScore}</div>
         </div>
         </div>
-        <div className="you">
-          <p className="text-3xl">Opponent</p>
+        <div className="opp">
+          <p className="text-3xl text-right">Opponent</p>
           <p className="text-purple-600">{opponentName}</p>
         </div>
       </div>
