@@ -2,12 +2,27 @@ import { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate, redirect } from "react-router-dom";
 import { Button, TextInput } from "flowbite-react";
 import AuthContext from "../assets/Contexts/AuthContext.jsx";
+import axios from "axios";
 import $ from "jquery";
 
 const Room = () => {
-  const { socket, user } = useContext(AuthContext);
+  const { socket, user, BaseUrl } = useContext(AuthContext);
   const navigate = useNavigate();
   const { room } = useParams();
+  const [roomName, setRoomName] = useState("");
+
+  const roomData = useCallback(async () => {
+    try {
+      const response = await BaseUrl.get(`/room/data/${room}`);
+      setRoomName(response.data.rooms.name);
+    } catch (error) {
+      console.error("Error fetching room data:", error);
+    }
+  }, [BaseUrl, room]);
+
+  useEffect(() => {
+    roomData();
+  }, [roomData]);
   const [users, setUsers] = useState([]);
   const [nim, setNim] = useState(user.nim);
   const [yourAnswers, setYourAnswers] = useState([]);
@@ -15,6 +30,7 @@ const Room = () => {
   const [yourScore, setYourScore] = useState(0);
   const [oppScore, setOppScore] = useState(0);
   const [opponent, setOpponent] = useState(null);
+  const [opponentName, setOpponentName] = useState("");
   const [countingDown, setCountingDown] = useState(false);
   const [timer, setTimer] = useState(10);
   const [round, setRound] = useState(1);
@@ -38,13 +54,22 @@ const Room = () => {
   };
 
   useEffect(() => {
+    const getName = async () => {
+      const data = await BaseUrl.get(`/user/${opponent}`);
+      setOpponentName(data.data.user.name);
+    };
+    getName();
+  }, [opponent, opponentName, BaseUrl]);
+
+  useEffect(() => {
     socket.on("room-info", (data) => {
       const { players, success } = data;
+      console.log(players);
       if (!success) {
-        alert('Room is Full')
-        setTimeout(()=>{
-          window.location.href = '/'
-        },3000)
+        alert("Room is Full");
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 3000);
       }
       setUsers(players);
       let opponentId = players.find((player) => player !== nim);
@@ -58,11 +83,11 @@ const Room = () => {
       const { ready } = data;
       if (ready) {
         setReady(true);
-      }else{
-        alert('Anda sudah pernah melawan musuh ini sebelumnya')
-        setTimeout(()=>{
-          window.location.href = '/'
-        },3000)
+      } else {
+        alert("Anda sudah pernah melawan musuh ini sebelumnya");
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 3000);
       }
     });
 
@@ -110,7 +135,7 @@ const Room = () => {
       if (end) {
         setTimeout(() => {
           socket.emit("leave-room", { room: room, nim: nim });
-          redirect('/')
+          redirect("/");
         }, 3000);
       }
     });
@@ -132,22 +157,21 @@ const Room = () => {
     answerSubmitted,
     end,
     ready,
-    user
+    user,
   ]);
 
   // Mengaktifkan kembali tombol saat countdown mencapai 0
   useEffect(() => {
-    
     if (timer == 10) {
       setButtonDisabled(false);
     }
-    
+
     if (!answerSubmitted && timer == 0) {
       $("#setuju").click();
     } else {
       setAnswerSubmitted(false);
     }
-    
+
     if (ready) {
       setCountingDown(true);
       $("#timer").addClass("animate-ping");
@@ -167,26 +191,45 @@ const Room = () => {
       if (end) {
         clearInterval(countdownInterval);
         setCountingDown(false);
-        setRound(1)
-        $('#timer').removeClass('animate-ping')
+        setRound(1);
+        $("#timer").removeClass("animate-ping");
         alert("Game is finish");
-        setTimeout(()=>{
-          socket.emit('final-score',{userId : user.id,finalScore : yourScore,room : room,cls :user.class})
-        },2000)
+        setTimeout(() => {
+          socket.emit("final-score", {
+            userId: user.id,
+            finalScore: yourScore,
+            room: room,
+            cls: user.class,
+          });
+        }, 2000);
       }
       return () => {
         clearInterval(countdownInterval);
       };
     }
-  }, [timer, answerSubmitted, round,end,ready,room,socket,user,yourScore]);
+  }, [
+    timer,
+    answerSubmitted,
+    round,
+    end,
+    ready,
+    room,
+    socket,
+    user,
+    yourScore,
+  ]);
 
   return (
     <div className="p-3">
       <div className="flex justify-between">
         <div className="you">
           <p className="text-3xl">You</p>
-          <p className="text-green-600">{nim}</p>
+          <p className="text-green-600">{user.name}</p>
         </div>
+        <div className="flex flex-col">
+        <p className="mx-auto text-lg font-semibold text-blue-800 mb-3">
+          Room {roomName}
+        </p>
         <div className="flex items-center justify-center">
           <div className="text-3xl text-green-600">{yourScore}</div>
           <div className="text-4xl mx-6 flex flex-col">
@@ -195,9 +238,10 @@ const Room = () => {
           </div>
           <div className="text-3xl text-purple-600">{oppScore}</div>
         </div>
+        </div>
         <div className="you">
           <p className="text-3xl">Opponent</p>
-          <p className="text-purple-600">{opponent}</p>
+          <p className="text-purple-600">{opponentName}</p>
         </div>
       </div>
       <div className="box-game border-4 flex flex-col mx-10 my-5 rounded-md py-10">

@@ -7,9 +7,9 @@ import io from "socket.io-client";
 const AuthContext = createContext();
 
 export const AuthContextProvider = ({ children }) => {
-  const socket = io.connect("http://16.78.21.38:3001");
+  const socket = io.connect("http://localhost:3001");
   const BaseUrl = axios.create({
-    baseURL: "http://16.78.21.38:8000",
+    baseURL: "http://localhost:8000",
     headers: { "Content-Type": "application/json" },
     withCredentials: true,
   });
