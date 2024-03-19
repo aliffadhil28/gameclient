@@ -83,11 +83,6 @@ const Room = () => {
       const { ready } = data;
       if (ready) {
         setReady(true);
-      } else {
-        alert("Anda sudah pernah melawan musuh ini sebelumnya");
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 3000);
       }
     });
 
